@@ -41,16 +41,6 @@ type createCommand struct {
 	citizenRepository    citizen.Repository
 }
 
-func NewCreateCommand(
-	occurrenceRepository Repository,
-	citizenRepository citizen.Repository,
-) *createCommand {
-	return &createCommand{
-		occurrenceRepository: occurrenceRepository,
-		citizenRepository:    citizenRepository,
-	}
-}
-
 func (c *createCommand) Do(ocType, relatedBy string) error {
 	cit, err := c.citizenRepository.GetByID(relatedBy)
 	if err != nil {
@@ -77,4 +67,30 @@ func (c *createCommand) Undo(id string) error {
 		return err
 	}
 	return nil
+}
+
+type getByIdCommand struct {
+	occurrenceRepository Repository
+	citizenRepository    citizen.Repository
+}
+
+func (c getByIdCommand) Do(id string) (map[string]any, error) {
+	oc, err := c.occurrenceRepository.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	cit, err := c.citizenRepository.GetByID(oc.RelatedBy)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]any{
+		"id":   oc.ID,
+		"type": string(oc.Type),
+		"related_by": map[string]string{
+			"id":    cit.ID,
+			"email": cit.Email,
+		},
+	}, nil
 }

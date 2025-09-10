@@ -1,4 +1,4 @@
-package middleware
+package auth
 
 import (
 	"jusvis/pkg/token"
@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func Authorize(next http.HandlerFunc) http.HandlerFunc {
+func Middleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rawToken := r.Header.Get("Authorization")
 		tokenString := strings.TrimPrefix(rawToken, "Bearer ")

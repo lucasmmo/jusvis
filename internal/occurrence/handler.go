@@ -3,8 +3,8 @@ package occurrence
 import (
 	"encoding/json"
 	"fmt"
+	"jusvis/internal/auth"
 	"jusvis/internal/citizen"
-	"jusvis/internal/middleware"
 	"net/http"
 )
 
@@ -13,8 +13,8 @@ func Routes(mux *http.ServeMux, occurrenceRepository Repository, citizenReposito
 		occurrenceRepository: occurrenceRepository,
 		citizenRepository:    citizenRepository,
 	}
-	mux.HandleFunc("POST /occurrence", middleware.Authorize(controller.Create))
-	mux.HandleFunc("GET /occurrence/{id}", middleware.Authorize(controller.GetByID))
+	mux.HandleFunc("POST /occurrence", auth.Middleware(controller.Create))
+	mux.HandleFunc("GET /occurrence/{id}", auth.Middleware(controller.GetByID))
 }
 
 type controller struct {
@@ -33,7 +33,7 @@ func (c controller) Create(w http.ResponseWriter, r *http.Request) {
 	ocType := body["type"].(string)
 	userId := getUserIdFromToken(*r)
 
-	createCommand := NewCreateCommand(c.occurrenceRepository, c.citizenRepository)
+	createCommand := createCommand{c.occurrenceRepository, c.citizenRepository}
 	if err := createCommand.Do(ocType, userId); err != nil {
 		http.Error(w, fmt.Sprintf("cannot create an occurrence: %s", err.Error()), http.StatusBadRequest)
 		return
@@ -44,26 +44,14 @@ func (c controller) Create(w http.ResponseWriter, r *http.Request) {
 
 func (c controller) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	oc, err := c.occurrenceRepository.GetByID(id)
+
+	getByIdCommand := getByIdCommand{c.occurrenceRepository, c.citizenRepository}
+	res, err := getByIdCommand.Do(id)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("cannot get an occurrence: %s", err.Error()), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("cannot get the occurrence: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
-	cit, err := c.citizenRepository.GetByID(oc.RelatedBy)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("cannot get an citizen: %s", err.Error()), http.StatusBadRequest)
-		return
-	}
-
-	res := map[string]any{
-		"id":   oc.ID,
-		"type": string(oc.Type),
-		"related_by": map[string]string{
-			"id":    cit.ID,
-			"email": cit.Email,
-		},
-	}
 	if err := json.NewEncoder(w).Encode(res); err != nil {
 		http.Error(w, fmt.Sprintf("cannot encode the occurrence: %s", err.Error()), http.StatusInternalServerError)
 		return
