@@ -3,6 +3,7 @@ package main
 import (
 	"jusvis/internal/auth"
 	"jusvis/internal/citizen"
+	"jusvis/internal/middleware"
 	"jusvis/internal/occurrence"
 	"net/http"
 )
@@ -16,5 +17,7 @@ func main() {
 	auth.Routes(mux, citizenRepository)
 	occurrence.Routes(mux, occurrenceRepository, citizenRepository)
 
-	http.ListenAndServe(":8080", mux)
+	corsMux := middleware.Cors(mux)
+
+	http.ListenAndServe(":8080", corsMux)
 }

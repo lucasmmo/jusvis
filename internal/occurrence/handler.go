@@ -3,8 +3,8 @@ package occurrence
 import (
 	"encoding/json"
 	"fmt"
-	"jusvis/internal/auth"
 	"jusvis/internal/citizen"
+	"jusvis/internal/middleware"
 	"net/http"
 )
 
@@ -13,8 +13,8 @@ func Routes(mux *http.ServeMux, occurrenceRepository Repository, citizenReposito
 		occurrenceRepository: occurrenceRepository,
 		citizenRepository:    citizenRepository,
 	}
-	mux.HandleFunc("POST /occurrence", auth.Middleware(controller.Create))
-	mux.HandleFunc("GET /occurrence/{id}", auth.Middleware(controller.GetByID))
+	mux.HandleFunc("POST /occurrence", middleware.Auth(controller.Create))
+	mux.HandleFunc("GET /occurrence/{id}", middleware.Auth(controller.GetByID))
 }
 
 type controller struct {
